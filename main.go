@@ -6,6 +6,8 @@ import (
 )
 
 func main(){
+
+	//code to run and build server: go build -o out && ./out
 	
 	mux := http.NewServeMux()
 
@@ -14,11 +16,12 @@ func main(){
 		Handler: mux,
 	}
 
+	mux.Handle("/", http.FileServer(http.Dir(".")))
+
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 
-
-
+	
 
 }
