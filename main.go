@@ -6,18 +6,21 @@ import (
 )
 
 func main(){
-
-	//code to run and build server: go build -o out && ./out
+	//cmd to run and build server: go build -o out && ./out
+	
+	const filepathRoot = "."
+	const port = "8080"
 	
 	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(filepathRoot)))
 
 	srv := http.Server{
-		Addr: ":8080",
+		Addr: ":" + port,
 		Handler: mux,
 	}
+	
 
-	mux.Handle("/", http.FileServer(http.Dir(".")))
-
+	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
