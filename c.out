@@ -1,0 +1,27 @@
+mode: set
+chirpy/badword_filter.go:7.40,15.34 4 1
+chirpy/badword_filter.go:15.34,17.35 2 1
+chirpy/badword_filter.go:17.35,18.39 1 1
+chirpy/badword_filter.go:18.39,21.5 2 1
+chirpy/badword_filter.go:23.3,23.20 1 1
+chirpy/badword_filter.go:23.20,24.12 1 1
+chirpy/badword_filter.go:26.3,26.40 1 1
+chirpy/badword_filter.go:29.2,29.38 1 1
+chirpy/handler_validate.go:8.70,25.16 7 0
+chirpy/handler_validate.go:25.16,28.3 2 0
+chirpy/handler_validate.go:30.2,31.42 2 0
+chirpy/handler_validate.go:31.42,34.3 2 0
+chirpy/handler_validate.go:36.2,42.47 3 0
+chirpy/json.go:9.68,20.16 4 0
+chirpy/json.go:20.16,24.3 3 0
+chirpy/json.go:26.2,28.14 3 0
+chirpy/json.go:32.76,35.16 2 0
+chirpy/json.go:35.16,39.3 3 0
+chirpy/json.go:41.2,43.22 3 0
+chirpy/main.go:13.12,40.45 13 0
+chirpy/main.go:40.45,42.3 1 0
+chirpy/metrics.go:9.76,10.71 1 0
+chirpy/metrics.go:10.71,13.3 2 0
+chirpy/metrics.go:16.80,29.2 4 0
+chirpy/metrics.go:31.78,34.2 2 0
+chirpy/readiness.go:5.65,9.2 3 0

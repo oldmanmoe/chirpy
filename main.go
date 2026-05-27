@@ -13,7 +13,7 @@ type apiConfig struct {
 func main(){
 	/*
 	cmd to run and build server: go build -o out && ./out
-	link to localhost:  
+	link to localhost:  http://localhost:8080/app/
 	*/	
 	
 	const filepathRoot = "."
