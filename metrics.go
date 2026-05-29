@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -29,6 +31,12 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
-	cfg.fileserverHits.Swap(0)
-	w.WriteHeader(http.StatusOK)
+	if cfg.platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "Reset is only allowed in dev environment.")
+	}
+
+	if err := cfg.db.ResetUsers(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	
 }

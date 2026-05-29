@@ -2,7 +2,6 @@
 	cmd to run and build server: go build -o out && ./out
 	link to localhost:  http://localhost:8080/app/
 */
-
 package main
 
 import (
@@ -19,7 +18,9 @@ import (
 
 type apiConfig struct {
 	fileserverHits	atomic.Int32
-	db	*database.Queries
+	db				*database.Queries
+	platform 		string
+	
 }
 
 func main(){
@@ -41,6 +42,7 @@ func main(){
 
 	apiCfg := apiConfig{
 		db: dbQueries,
+		platform: os.Getenv("PLATFORM"),
 	}
 	
 	handlerFileServer := http.FileServer(http.Dir(filepathRoot))
@@ -51,6 +53,7 @@ func main(){
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/validate_chirp", chirpCharLimitHandler)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 
 	srv := http.Server{
 		Addr: ":" + port,

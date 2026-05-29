@@ -5,8 +5,6 @@ import (
 	"net/http"
 )
 
-func chirpCharLimitHandler(w http.ResponseWriter, req *http.Request) {
-
 	type chirpRequest struct {
 		Body   string	`json:"body"`	
 	}
@@ -19,8 +17,10 @@ func chirpCharLimitHandler(w http.ResponseWriter, req *http.Request) {
 		Cleaned_Body	string	`json:"cleaned_body"`	
 	}
 
+func chirpCharLimitHandler(w http.ResponseWriter, req *http.Request) {
+	var chirpResp chirpRequest
+	
 	decoder := json.NewDecoder(req.Body)
-	chirpResp := chirpRequest{}
 	err := decoder.Decode(&chirpResp)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
@@ -38,7 +38,6 @@ func chirpCharLimitHandler(w http.ResponseWriter, req *http.Request) {
 		Cleaned_Body: cleanChirpStr,
 	}
 
-	
 	respondWithJSON(w, http.StatusOK, cleanChirp)
 	
 
