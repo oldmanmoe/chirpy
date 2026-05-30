@@ -29,10 +29,10 @@ import (
 		UserID		uuid.UUID	`json:"user_id"`
 	}
 
-func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, req *http.Request) {
+func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, r *http.Request) {
 	var chirpReq chirpRequest
 	
-	decoder := json.NewDecoder(req.Body)
+	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&chirpReq)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
@@ -69,11 +69,56 @@ func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, req *http.Requ
 		UserID: chirpReq.UserID,
 	}
 
-
 	respondWithJSON(w, http.StatusCreated, finalChirp)
-	
+}
 
-	
+func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 
+	var result []Chirp
+
+	allChirps, err := cfg.db.GetAllChirps(context.Background())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to fetch all chirps")
+		return
+	}
+
+	for _, chirp := range allChirps {
+		result = append(result,
+			Chirp{
+				ID: chirp.ID,
+				CreatedAt: chirp.CreatedAt,
+				UpdatedAt: chirp.UpdatedAt,
+				Body: chirp.Body,
+				UserID: chirp.UserID,
+			})
+		}
+
+	respondWithJSON(w, http.StatusOK, result)
+}
+
+func (cfg *apiConfig) handlerGetSingleChirp(w http.ResponseWriter, r *http.Request) {
+
+	rawChirpID := r.PathValue("chirpId")
+	chirpID, err := uuid.Parse(rawChirpID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Something went wrong parsing rawChirpID")
+		return
+	}
+
+	chirpInfo, err := cfg.db.GetChirp(context.Background(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+
+	result := Chirp{
+		ID: chirpInfo.ID,
+		CreatedAt: chirpInfo.CreatedAt,
+		UpdatedAt: chirpInfo.UpdatedAt,
+		Body: chirpInfo.Body,
+		UserID: chirpInfo.UserID,
+	}
+
+	respondWithJSON(w, http.StatusOK, result)
 }
 
