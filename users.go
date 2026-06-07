@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chirpy/internal/auth"
+	internal "chirpy/internal/auth"
 	"chirpy/internal/database"
 	"context"
 	"encoding/json"
@@ -13,21 +13,21 @@ import (
 	"github.com/google/uuid"
 )
 
-
-
 type User struct {
-	ID			uuid.UUID	`json:"id"`
-	CreatedAt	time.Time	`json:"created_at"`
-	UpdatedAt	time.Time	`json:"updated_at"`
-	Email		string		`json:"email"`
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+	Token	  string	`json:"token"`
 }
 
 type AuthRequest struct {
-	Email		string	`json:"email"`
-	Password	string	`json:"password"`
+	Email            string  	`json:"email"`
+	Password         string  	`json:"password"`
+	ExpiresInSeconds time.Duration	`json:"expires-in-seconds,omitempty"`
 }
 
-func(cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request,) {
+func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {
 	var registerReq AuthRequest
 
 	decoder := json.NewDecoder(req.Body)
@@ -42,37 +42,44 @@ func(cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request,
 		respondWithError(w, http.StatusInternalServerError, "something went wrong hashing password")
 	}
 
+
+
 	userInfo, err := cfg.db.CreateUser(
 		context.Background(),
 		database.CreateUserParams{
-			Email: registerReq.Email,
+			Email:          registerReq.Email,
 			HashedPassword: password,
 		})
 	if err != nil {
 		log.Fatal(err)
-		return 
+		return
 	}
 
 	newUser := User{
-		ID: userInfo.ID,
+		ID:        userInfo.ID,
 		CreatedAt: userInfo.CreatedAt,
 		UpdatedAt: userInfo.UpdatedAt,
-		Email: userInfo.Email,
+		Email:     userInfo.Email,
 	}
 
 	printUserInfo(newUser)
-	
+
 	respondWithJSON(w, http.StatusCreated, newUser)
 }
 
-func(cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, req *http.Request) {
-	var loginReq AuthRequest
+func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, req *http.Request) {
+	defaultExpireTime := time.Second * 3600
+	loginReq := AuthRequest{ExpiresInSeconds: defaultExpireTime}
 
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&loginReq)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "something went wrong")
 		return
+	}
+	
+	if loginReq.ExpiresInSeconds < defaultExpireTime {
+		loginReq.ExpiresInSeconds = defaultExpireTime
 	}
 
 	existingUser, err := cfg.db.GetUserByEmail(context.Background(), loginReq.Email)
@@ -86,21 +93,23 @@ func(cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, req *http.Request) 
 		respondWithError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
-	
+
 	if !isValid {
 		respondWithError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
+	generatedToken, err := internal.MakeJWT(existingUser.ID, cfg.secret, time.Duration(loginReq.ExpiresInSeconds))
+
 	resultUser := User{
-		ID: existingUser.ID,
+		ID:        existingUser.ID,
 		CreatedAt: existingUser.CreatedAt,
 		UpdatedAt: existingUser.UpdatedAt,
-		Email: existingUser.Email,
+		Email:     existingUser.Email,
+		Token:	   generatedToken,
 	}
 
 	respondWithJSON(w, http.StatusOK, resultUser)
-
 }
 
 func resetUsers(apiConfig *apiConfig) {

@@ -2,6 +2,8 @@ package internal
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -25,7 +27,6 @@ func CheckPasswordHash(password string, hash string) (bool, error) {
 	}
 	return result, err
 }
-
  
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	now := time.Now()
@@ -82,3 +83,19 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	return userID, nil
 
 }
+
+func GetBearerToken(headers http.Header) (string, error) {
+	rawHeader := headers.Get("Authorization")
+	
+	if rawHeader == "" {
+		return "", fmt.Errorf("Unable to get header string")
+	}
+	
+	tokenString := strings.ReplaceAll(rawHeader, "Bearer ", "")
+	if tokenString == "" {
+		return "", fmt.Errorf("Unable to get token string")
+	}
+
+	return tokenString, nil
+}
+

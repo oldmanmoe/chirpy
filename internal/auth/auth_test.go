@@ -1,14 +1,15 @@
 package internal
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+// run test with: go test -coverprofile=c.out
 func TestCheckPasswordHash(t *testing.T) {
-	// First, we need to create some hashed passwords for testing
 	password1 := "correctPassword123!"
 	password2 := "anotherPassword456!"
 	hash1, _ := HashPassword(password1)
@@ -118,3 +119,51 @@ func TestValidateJWT(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBearerToken(t *testing.T) {
+    tests := map[string]struct {
+        headers   http.Header
+        wantToken string
+        wantErr   bool  // true if we expect a non-nil error
+    }{
+        "Valid bearer token": {
+            headers:   http.Header{"Authorization": []string{"Bearer abc123"}},
+            wantToken: "abc123",
+            wantErr:   false,
+        },
+        "Missing Authorization header": {
+            headers:   http.Header{},
+            wantToken: "",
+            wantErr:   true,
+        },
+        "Empty Authorization header": {
+            headers:   http.Header{"Authorization": []string{""}},
+            wantToken: "",
+            wantErr:   true,
+        },
+        "Bearer with no token": {
+            headers:   http.Header{"Authorization": []string{"Bearer "}},
+            wantToken: "",
+            wantErr:   true,
+        },
+    }
+
+    for name, tc := range tests {
+        t.Run(name, func(t *testing.T) {
+            gotToken, err := GetBearerToken(tc.headers)
+
+            if tc.wantErr && err == nil {
+                t.Fatalf("%s: expected an error but got none", name)
+            }
+            if !tc.wantErr && err != nil {
+                t.Fatalf("%s: expected no error but got: %v", name, err)
+            }
+            if gotToken != tc.wantToken {
+                t.Fatalf("%s: expected token %q, got %q", name, tc.wantToken, gotToken)
+            }
+        })
+    }
+}
+
+
+

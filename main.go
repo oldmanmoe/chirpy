@@ -20,6 +20,7 @@ type apiConfig struct {
 	fileserverHits	atomic.Int32
 	db				*database.Queries
 	platform 		string
+	secret			string
 	
 }
 
@@ -32,6 +33,8 @@ func main(){
 		log.Fatal("Error loading .env file")
 	}
 
+	secretKey := os.Getenv("secret")
+
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -43,6 +46,7 @@ func main(){
 	apiCfg := apiConfig{
 		db: dbQueries,
 		platform: os.Getenv("PLATFORM"),
+		secret: secretKey,
 	}
 	
 	handlerFileServer := http.FileServer(http.Dir(filepathRoot))
@@ -56,7 +60,7 @@ func main(){
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUser)
-	mux.HandleFunc("POST /api/chirps", apiCfg.chirpCharLimitHandler)
+	mux.HandleFunc("POST /api/chirps", apiCfg.chirpRequestHandler)
 	
 
 

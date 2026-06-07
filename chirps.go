@@ -1,6 +1,7 @@
 package main
 
 import (
+	internal "chirpy/internal/auth"
 	"chirpy/internal/database"
 	"context"
 	"encoding/json"
@@ -14,7 +15,6 @@ import (
 	type chirpRequest struct {
 		Body   	string		`json:"body"`
 		UserID	uuid.UUID	`json:"user_id"`
-
 	}
 
 	type successResponse struct {
@@ -29,7 +29,7 @@ import (
 		UserID		uuid.UUID	`json:"user_id"`
 	}
 
-func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, r *http.Request) {
+func(cfg *apiConfig) chirpRequestHandler(w http.ResponseWriter, r *http.Request) {
 	var chirpReq chirpRequest
 	
 	decoder := json.NewDecoder(r.Body)
@@ -38,6 +38,22 @@ func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
+
+	authToken, err := internal.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Unauthorize request: %v", err)
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
+		return
+	}
+
+	reqUser, err := internal.ValidateJWT(authToken, cfg.secret)
+	if err != nil {
+		log.Printf("Unauthorized request: %v", err)
+		respondWithError(w, http.StatusUnauthorized, "Unauthorizedm authentication required")
+		return
+
+	}
+	 
 	
 	const maxChirpLength = 140
 	if len(chirpReq.Body) > maxChirpLength {
@@ -46,13 +62,11 @@ func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	cleanChirpStr := cleanBadWords(chirpReq.Body)
-	
 
-	
 	chirpInfo, err := cfg.db.CreateChirp(context.Background(),
 	database.CreateChirpParams{
 		Body: cleanChirpStr,
-		UserID: chirpReq.UserID,
+		UserID: reqUser,
 		})
 
 	if err != nil {
@@ -66,7 +80,7 @@ func(cfg *apiConfig) chirpCharLimitHandler(w http.ResponseWriter, r *http.Reques
 		CreatedAt: chirpInfo.CreatedAt,
 		UpdatedAt: chirpInfo.UpdatedAt,
 		Body: chirpInfo.Body,
-		UserID: chirpReq.UserID,
+		UserID: reqUser,
 	}
 
 	respondWithJSON(w, http.StatusCreated, finalChirp)
@@ -90,6 +104,7 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 				UpdatedAt: chirp.UpdatedAt,
 				Body: chirp.Body,
 				UserID: chirp.UserID,
+
 			})
 		}
 
