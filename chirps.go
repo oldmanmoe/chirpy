@@ -41,20 +41,19 @@ func(cfg *apiConfig) chirpRequestHandler(w http.ResponseWriter, r *http.Request)
 
 	authToken, err := internal.GetBearerToken(r.Header)
 	if err != nil {
-		log.Printf("Unauthorize request: %v", err)
+		log.Print(err)
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
 		return
 	}
 
 	reqUser, err := internal.ValidateJWT(authToken, cfg.secret)
 	if err != nil {
-		log.Printf("Unauthorized request: %v", err)
-		respondWithError(w, http.StatusUnauthorized, "Unauthorizedm authentication required")
+		log.Print(err)
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required!")
 		return
 
 	}
 	 
-	
 	const maxChirpLength = 140
 	if len(chirpReq.Body) > maxChirpLength {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long" )

@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"sync/atomic"
-
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -61,6 +60,10 @@ func main(){
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUser)
 	mux.HandleFunc("POST /api/chirps", apiCfg.chirpRequestHandler)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdatePassword)
+
 	
 
 

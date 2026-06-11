@@ -146,6 +146,11 @@ func TestGetBearerToken(t *testing.T) {
             wantToken: "",
             wantErr:   true,
         },
+		"Regular Bearer 2": {
+			headers: 	http.Header{"Authorization": []string{"Bearer abc.123.xyz"}},
+			wantToken: 	"abc.123.xyz",
+			wantErr:	false,
+		},
     }
 
     for name, tc := range tests {
