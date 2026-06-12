@@ -5,6 +5,7 @@ import (
 	"chirpy/internal/database"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -134,5 +135,52 @@ func (cfg *apiConfig) handlerGetSingleChirp(w http.ResponseWriter, r *http.Reque
 	}
 
 	respondWithJSON(w, http.StatusOK, result)
+}
+
+func (cfg *apiConfig) handlerDeleteSingleChirp(w http.ResponseWriter, r *http.Request) {
+
+	rawChirpID := r.PathValue("chirpId")
+	chirpID, err := uuid.Parse(rawChirpID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Something went wrong")
+		return
+	}
+	reqToken, err := internal.GetBearerToken(r.Header)
+	if err != nil {
+		fmt.Print(err)
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
+		return
+	}
+
+	reqUserID, err := internal.ValidateJWT(reqToken, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Unauthorized, authentication required")
+		return
+	}
+
+	dbChirp, err := cfg.db.GetChirp(context.Background(), chirpID)
+	if err != nil {
+		 respondWithError(w, http.StatusNoContent, "Chirp not found!!")
+		 return
+	}
+
+	if reqUserID != dbChirp.UserID {
+		respondWithError(w, http.StatusForbidden, "Unauthorized, authentication required")
+	}
+
+	err = cfg.db.DeleteChirp(context.Background(), dbChirp.ID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+
+	response := struct {
+		Status string
+	}{
+		Status: "Success",
+	}
+
+	respondWithJSON(w, http.StatusNoContent, response)
+
 }
 
