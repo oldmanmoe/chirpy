@@ -1,7 +1,7 @@
 package main
 
 import (
-	internal "chirpy/internal/auth"
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"context"
 	"database/sql"
@@ -25,6 +25,7 @@ type User struct {
 	Email     		string    	`json:"email"`
 	Token			string		`json:"token"`
 	RefreshToken 	string		`json:"refresh_token"`
+	IsChirpyRed		bool		`json:"is_chirpy_red"`
 }
 
 type AuthRequest struct {
@@ -42,7 +43,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	password, err := internal.HashPassword(registerReq.Password)
+	password, err := auth.HashPassword(registerReq.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong hashing password")
 	}
@@ -90,7 +91,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isValid, err := internal.CheckPasswordHash(loginReq.Password, existingUser.HashedPassword)
+	isValid, err := auth.CheckPasswordHash(loginReq.Password, existingUser.HashedPassword)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
@@ -101,8 +102,8 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, _ := internal.MakeJWT(existingUser.ID, cfg.secret, accessExpireTime) 
-	refreshToken := internal.MakeRefreshToken()
+	accessToken, _ := auth.MakeJWT(existingUser.ID, cfg.secret, accessExpireTime) 
+	refreshToken := auth.MakeRefreshToken()
 
 	err = cfg.db.StoreNewRefreshTokenInfo(
 		context.Background(),
@@ -124,6 +125,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		Email:     		existingUser.Email,
 		Token:	   		accessToken,
 		RefreshToken:	refreshToken,
+		IsChirpyRed: 	existingUser.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusOK, resultUser)
@@ -131,7 +133,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 	
-	reqRefreshToken, err := internal.GetBearerToken(r.Header)
+	reqRefreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		fmt.Print(err)
 		return 
@@ -152,7 +154,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newAccessToken, err := internal.MakeJWT(dbRefreshToken.UserID, cfg.secret, accessExpireTime)
+	newAccessToken, err := auth.MakeJWT(dbRefreshToken.UserID, cfg.secret, accessExpireTime)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
 	}
@@ -168,7 +170,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 
-	reqRefreshToken, err := internal.GetBearerToken(r.Header)
+	reqRefreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		fmt.Print(err)
 		return 
@@ -197,14 +199,14 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiConfig) handlerUpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	var reqUserInfo AuthRequest
-	reqRefreshToken, err := internal.GetBearerToken(r.Header)
+	reqRefreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		fmt.Print(err)
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
 		return
 	}
 
-	reqUser, err := internal.ValidateJWT(reqRefreshToken, cfg.secret)
+	reqUser, err := auth.ValidateJWT(reqRefreshToken, cfg.secret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized, authentication required")
 		return
@@ -217,7 +219,7 @@ func (cfg *apiConfig) handlerUpdatePassword(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	newPassword, err := internal.HashPassword(reqUserInfo.Password)
+	newPassword, err := auth.HashPassword(reqUserInfo.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
@@ -240,6 +242,7 @@ func (cfg *apiConfig) handlerUpdatePassword(w http.ResponseWriter, r *http.Reque
 		CreatedAt: 	userInfoUpdate.CreatedAt,
 		UpdatedAt: 	time.Now(),
 		Email: 		userInfoUpdate.Email,
+		IsChirpyRed: userInfoUpdate.IsChirpyRed,
 	}
 
 	printUserInfo(updatedUserInfo)
@@ -259,5 +262,7 @@ func printUserInfo(user User) string {
 ID:.......... %v
 CreatedAt.... %v
 UpdatedAt.... %v
-Email........ %v`, user.ID, user.CreatedAt, user.UpdatedAt, user.Email)
+Email........ %v
+RedStatus.... %v`, user.ID, user.CreatedAt, user.UpdatedAt, user.Email, user.IsChirpyRed)
+
 }

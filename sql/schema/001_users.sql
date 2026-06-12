@@ -4,8 +4,9 @@ CREATE TABLE users(
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    hashed_password TEXT DEFAULT 'unset' NOT NULL
+    hashed_password TEXT NOT NULL DEFAULT 'unset',
+    is_chirpy_red BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- +goose Down
-DROP TABLE users;
+DROP TABLE users CASCADE;
