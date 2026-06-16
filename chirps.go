@@ -87,8 +87,37 @@ func(cfg *apiConfig) chirpRequestHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
-
 	var result []Chirp
+
+	rawChirpAuthor := r.URL.Query().Get("author_id")
+	
+	if rawChirpAuthor != "" {
+		authorId, err := uuid.Parse(rawChirpAuthor)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Something went wrong!!")
+			return
+		}
+
+		allUserChirps, err := cfg.db.GetAllUserChirps(context.Background(), authorId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Algo salio mal")
+			return
+		}
+
+		for _, userChirp := range allUserChirps {
+			result = append(result,
+				Chirp{
+					ID: userChirp.ID,
+					CreatedAt: userChirp.CreatedAt,
+					UpdatedAt: userChirp.UpdatedAt,
+					Body: userChirp.Body,
+					UserID: userChirp.UserID,
+				})
+		}
+		respondWithJSON(w, http.StatusOK, result)
+		return
+	}
+	
 
 	allChirps, err := cfg.db.GetAllChirps(context.Background())
 	if err != nil {
@@ -136,6 +165,7 @@ func (cfg *apiConfig) handlerGetSingleChirp(w http.ResponseWriter, r *http.Reque
 
 	respondWithJSON(w, http.StatusOK, result)
 }
+
 
 func (cfg *apiConfig) handlerDeleteSingleChirp(w http.ResponseWriter, r *http.Request) {
 
