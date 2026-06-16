@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -90,7 +91,8 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	var result []Chirp
 
 	rawChirpAuthor := r.URL.Query().Get("author_id")
-	
+	sortDirection := r.URL.Query().Get("sort")
+
 	if rawChirpAuthor != "" {
 		authorId, err := uuid.Parse(rawChirpAuthor)
 		if err != nil {
@@ -104,6 +106,9 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		
+		
+
 		for _, userChirp := range allUserChirps {
 			result = append(result,
 				Chirp{
@@ -114,6 +119,20 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 					UserID: userChirp.UserID,
 				})
 		}
+
+		switch sortDirection {
+		case "desc":
+			sort.Slice(result, func(i, j int) bool {
+				return result[i].CreatedAt.After(result[j].CreatedAt)
+			})
+		case "asc":
+			fallthrough
+		case "":
+			sort.Slice(result, func(i, j int) bool {
+				return result[i].CreatedAt.Before(result[j].CreatedAt)
+			})
+		}
+			
 		respondWithJSON(w, http.StatusOK, result)
 		return
 	}
@@ -136,6 +155,19 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 
 			})
 		}
+
+	switch sortDirection {
+	case "desc":
+		sort.Slice(result, func(i, j int) bool {
+			return result[i].CreatedAt.After(result[j].CreatedAt)
+		})
+	case "asc":
+		fallthrough
+	case "":
+		sort.Slice(result, func(i, j int) bool {
+			return result[i].CreatedAt.Before(result[j].CreatedAt)
+		})
+	}
 
 	respondWithJSON(w, http.StatusOK, result)
 }
